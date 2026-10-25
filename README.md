@@ -2,9 +2,15 @@
 
 รุ่นทดลองสำหรับแสดงภาษาไทยในตัวเรนเดอร์ฟอนต์เดิมของเกม โดยไม่สร้างหน้าต่างแชทใหม่
 
-[ดาวน์โหลด ThaiNative_Renderer_v2.zip](https://github.com/saradaken/-/raw/refs/heads/main/downloads/ThaiNative_Renderer_v2.zip)
+[ดาวน์โหลด ThaiNative_Renderer_v2_1.zip](https://github.com/saradaken/-/raw/refs/heads/main/downloads/ThaiNative_Renderer_v2_1.zip)
 
 **ยังไม่ได้ทดสอบในเกม Windows จริง** การตรวจโค้ดและทดสอบกับตัวจำลองผ่านแล้ว แต่ต้องยืนยันว่าตัววาดแชทของไคลเอนต์เรียก backend ที่รองรับ
+
+## รุ่น 2.1
+
+เพิ่มการถอด marker ที่ `MultiByteToWideChar` ก่อนถึงฟอนต์ และรองรับข้อความ Unicode ไทยที่เข้า `DrawTextW` โดยตรง เพิ่ม `conversionMarkers` / `conversionDecoded` พร้อมระบุโมดูลต้นทางใน log
+
+ผู้ที่ติดตั้งรุ่นก่อนหน้าแล้ว เปลี่ยนเฉพาะ `ThaiNative.asi` ได้ ใช้ Lua เดิมต่อได้
 
 ## วิธีใช้
 
