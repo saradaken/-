@@ -1,5 +1,9 @@
 # ThaiNative — native SA-MP R3 Thai font bridge
 
+> **หยุดใช้ binary รุ่น 2.1 ชั่วคราว:** ผู้ใช้รายงานว่าเกมเด้งหลังถอดรหัสข้อความไทยสำเร็จ ให้ปิดเกมและนำ `ThaiNative.asi` รุ่นนี้ออกจากการโหลดก่อน ยังไม่มี build ใหม่ที่ยืนยันในเกมจริงแล้ว
+>
+> ซอร์สพัฒนาใน [`src/ThaiNative.c`](src/ThaiNative.c) เพิ่ม TLS guard สำหรับการวาดซ้ำข้าม backend และไม่ wrap ฟอนต์ทดแทนของตัวเอง การทดสอบ regression กับ binary ที่คอมไพล์แล้วใน x86 emulator ผ่าน แต่ยังต้องตรวจ `_chat.asi` และ crash log เพื่อระบุสาเหตุเกมเด้ง ไม่มีการเผยแพร่ binary รุ่นแก้นี้เพื่อให้ทดลองซ้ำในขั้นนี้
+
 รุ่นทดลองสำหรับแสดงภาษาไทยในตัวเรนเดอร์ฟอนต์เดิมของเกม โดยไม่สร้างหน้าต่างแชทใหม่
 
 [ดาวน์โหลด ThaiNative_Renderer_v2_1.zip](https://github.com/saradaken/-/raw/refs/heads/main/downloads/ThaiNative_Renderer_v2_1.zip)
