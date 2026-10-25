@@ -65,3 +65,26 @@ ZIP มีซอร์ส คำสั่ง build และ MinHook 1.3.4 พ�
 ไฟล์สคริปต์และข้อความไทยต้องเป็น UTF-8 ไม่ส่งไทยผ่าน `u8(...)` หรือ `u8:decode(...)` อีกครั้ง Module แพ็กไทยให้ แต่ไม่แปลงข้อความรัสเซีย UTF-8 เป็น CP1251 อัตโนมัติ: ข้อความรัสเซียจากไฟล์ UTF-8 ต้องแปลงแยก เช่น `u8:decode('Привет: ') .. 'สวัสดี'` ก่อนเรียก `thai.add` โดยตั้ง default encoding เป็น CP1251
 
 ยังต้องมี `ThaiChatBridge.asi` และ `_chat.asi` รุ่นที่รองรับ ตัวอย่างใช้คำสั่ง `/thsample` และไม่ส่งข้อความออกเซิร์ฟเวอร์
+
+## Helper 1.1: เขียนไทยและรัสเซียเป็น UTF-8 ตรง ๆ
+
+[ดาวน์โหลด ThaiChat_Lua_Helper_v1_1.zip](https://github.com/saradaken/-/raw/refs/heads/main/downloads/ThaiChat_Lua_Helper_v1_1.zip)
+
+เปลี่ยน `moonloader/lib/thaichat.lua` เป็นรุ่นนี้ แล้วใช้:
+
+```lua
+local sampAddChatMessage = require('thaichat').addUtf8
+sampAddChatMessage('สวัสดีครับ', -1)
+sampAddChatMessage('Привет!', -1)
+sampAddChatMessage('[Система]: สวัสดีครับ Привет!', -1)
+```
+
+บันทึกสคริปต์เป็น UTF-8 และส่งข้อความตรง ๆ โดยไม่ผ่าน `u8(...)` หรือ `u8:decode(...)` อีกครั้ง ไม่จำเป็นต้องตั้ง `encoding.default` เพื่อเรียกโหมดนี้ และไม่ต้องเปลี่ยน ASI
+
+`addUtf8` แปลงตัวอักษร Windows-1251 จาก UTF-8 และแพ็กไทยในการอ่านรอบเดียว ไม่เดา encoding ของข้อความ runtime รองรับไทยและอักษรที่ CP1251 มีเท่านั้น อักขระนอกชุด เช่น emoji จะคืนข้อผิดพลาดชัดเจน ไม่แทนข้อมูลเงียบ ๆ
+
+`packUtf8(text)` คืนข้อความพร้อมส่ง หรือ `nil, error` เพื่อให้สคริปต์จัดการเองได้ ส่วน `addUtf8` จะแจ้ง Lua error หาก input ไม่ถูกต้อง
+
+`add` / `pack` เดิมยังทำงานเหมือนเดิม สำหรับข้อความที่แปลงรัสเซียเป็น CP1251 มาแล้วหรือข้อความ CP1251 ที่รับจากเกม อย่าส่งข้อความเหล่านั้นเข้า `addUtf8`
+
+ตรวจแล้ว: mapping CP1251 ครบ, UTF-8 validation, รัสเซีย/ไทย/สีปนกันผ่าน helper ไปยัง conversion callback ของ ASI ที่คอมไพล์จริงใน x86 emulator ได้ข้อความ Unicode ตรงต้นฉบับ
