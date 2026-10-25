@@ -53,3 +53,15 @@ Log อยู่ข้าง `.asi` หรือ `%TEMP%\ThaiChatBridge.log` ถ
 ZIP มีซอร์ส คำสั่ง build และ MinHook 1.3.4 พร้อมใบอนุญาต ไม่มีไฟล์เกมที่ผู้ใช้แนบหรือฟอนต์ Microsoft รวมอยู่
 
 ไฟล์ ThaiNative/Probe รุ่นก่อนที่เก็บไว้ใน `downloads` เป็นงานทดลองเก่า ไม่ใช่ตัวเลือกติดตั้งปัจจุบัน
+
+## ใช้กับสคริปต์ Lua อื่น
+
+[ดาวน์โหลด helper และตัวอย่าง](https://github.com/saradaken/-/raw/refs/heads/main/downloads/ThaiChat_Lua_Helper.zip)
+
+วาง `thaichat.lua` ใน `moonloader/lib` แล้วเพิ่ม `local thai = require 'thaichat'` ในสคริปต์ จากนั้นเรียก `thai.add('สวัสดีครับ', -1)`
+
+ถ้าต้องการใช้ชื่อฟังก์ชันเดิม เพิ่ม `local sampAddChatMessage = require('thaichat').add` ก่อนฟังก์ชันที่ส่งข้อความ ขอบเขต local ต้องครอบคลุมจุดเรียกเหล่านั้น
+
+ไฟล์สคริปต์และข้อความไทยต้องเป็น UTF-8 ไม่ส่งไทยผ่าน `u8(...)` หรือ `u8:decode(...)` อีกครั้ง Module แพ็กไทยให้ แต่ไม่แปลงข้อความรัสเซีย UTF-8 เป็น CP1251 อัตโนมัติ: ข้อความรัสเซียจากไฟล์ UTF-8 ต้องแปลงแยก เช่น `u8:decode('Привет: ') .. 'สวัสดี'` ก่อนเรียก `thai.add` โดยตั้ง default encoding เป็น CP1251
+
+ยังต้องมี `ThaiChatBridge.asi` และ `_chat.asi` รุ่นที่รองรับ ตัวอย่างใช้คำสั่ง `/thsample` และไม่ส่งข้อความออกเซิร์ฟเวอร์
