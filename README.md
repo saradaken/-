@@ -1,10 +1,18 @@
 # ThaiChatBridge — Thai support for the supplied `_chat.asi`
 
-[ดาวน์โหลด ThaiChatBridge_v1_0.zip](https://github.com/saradaken/-/raw/refs/heads/main/downloads/ThaiChatBridge_v1_0.zip)
+[ดาวน์โหลด ThaiChatBridge_v1_1.zip](https://github.com/saradaken/-/raw/refs/heads/main/downloads/ThaiChatBridge_v1_1.zip)
 
 **รุ่นทดลองใหม่ ยังไม่ได้รันในเกม Windows จริง** ใช้ `_chat.asi` เป็นตัววาดแชทหลัก ไม่สร้างหน้าต่างใหม่ ไม่ใช้ตัววาดฟอนต์รวมของ ThaiNative รุ่นก่อน
 
 ThaiNative รุ่นก่อนทำให้เกมเด้งและไม่แนะนำให้โหลดร่วมกับรุ่นนี้
+
+## รุ่น 1.1: ตามฟอนต์ที่เลือกในเมนูเดิม
+
+ฟอนต์หลักจะได้รับช่วงภาษาไทย และตรวจ glyph ด้วย Unicode cmap ของฟอนต์นั้น หากมีไทยครบจะไม่ใช้ Tahoma หากขาดบางตัวจะใช้ Tahoma เฉพาะตัวที่ขาด เมื่อเปลี่ยนฟอนต์หรือขนาดในเมนู `_chat` จะสร้าง atlas ใหม่และ bridge ใช้ฟอนต์ที่เลือกให้อัตโนมัติ
+
+อัปเกรดจาก 1.0 โดยปิดเกมแล้วเปลี่ยนเฉพาะ `ThaiChatBridge.asi` ใช้ Lua เดิมได้ Log จะแสดง `Selected font Thai coverage: native=... missing=...` ฟอนต์ที่ไม่มีไทยยังต้องใช้ fallback; หาก coverage API ใช้ไม่ได้จะคง fallback เดิม
+
+ทดสอบโค้ดที่คอมไพล์ร่วมกับ AddFont จริงของ `_chat` ใน x86 emulator ผ่านกรณีมีไทยครบ/ไม่มีไทย/มีบางตัว รวมทั้งเปลี่ยนขนาดและสลับฟอนต์กลับ FreeType coverage เป็นตัวจำลองในการทดสอบ รูปทรงและวรรณยุกต์จริงต้องตรวจในเกม
 
 ## ติดตั้งเพื่อทดสอบ
 
@@ -13,7 +21,7 @@ ThaiNative รุ่นก่อนทำให้เกมเด้งและ
 3. วาง `ThaiChatBridge.asi` ข้าง `gta_sa.exe` ต้องมี ASI Loader
 4. วาง `ThaiChatBridgeTest.lua` ใน `moonloader` สำหรับทดสอบครั้งแรก
 5. เข้าเกม รอ 5 วินาที แล้วพิมพ์ `/thtest`
-6. ถ้าอักษรหาย/เป็นสี่เหลี่ยม และ log มี `fontMerges=0` ลอง `/fontsize 1` เพื่อให้ `_chat` สร้างฟอนต์ใหม่ แล้วทดสอบอีกครั้ง คำสั่งนี้เปลี่ยนขนาดฟอนต์ของแชท
+6. ถ้าอักษรหาย/เป็นสี่เหลี่ยม และ log มี `fontCalls=0` ลอง `/fontsize 1` เพื่อให้ `_chat` สร้างฟอนต์ใหม่ แล้วทดสอบอีกครั้ง คำสั่งนี้เปลี่ยนขนาดฟอนต์ของแชท
 7. หากยังผิดปกติ รอ 15 วินาที แล้วส่ง `ThaiChatBridge.log` กับภาพผลทดสอบ หากเด้งให้หยุดใช้แล้วส่ง crash log ด้วย
 
 Log อยู่ข้าง `.asi` หรือ `%TEMP%\ThaiChatBridge.log` ถ้าโฟลเดอร์เกมเขียนไม่ได้

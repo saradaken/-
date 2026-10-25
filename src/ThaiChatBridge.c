@@ -78,23 +78,75 @@ static int WINAPI convertChat(UINT cp,DWORD flags,LPCCH input,int bytes,LPWSTR o
     memcpy(output,decoded,(size_t)required*sizeof(WCHAR));HeapFree(GetProcessHeap(),0,decoded);SetLastError(saved);
     InterlockedIncrement(&g_messages);return required;
 }
+/* Use the selected font first; fallback ranges contain missing codepoints only. */
+typedef int (__cdecl *FTInitFn)(void**);
+typedef int (__cdecl *FTFaceFn)(void*,const unsigned char*,long,long,void**);
+typedef int (__cdecl *FTSelectFn)(void*,unsigned int);
+typedef unsigned (__cdecl *FTIndexFn)(void*,unsigned long);
+typedef int (__cdecl *FTDoneFn)(void*);
+static FTInitFn g_ftInit;static FTFaceFn g_ftFace;static FTIndexFn g_ftIndex;static FTSelectFn g_ftSelect;
+static FTDoneFn g_ftDoneFace,g_ftDoneLibrary;
+static const uint32_t g_selectedRanges[]={0x20,0xFF,0x400,0x4FF,0xE01,0xE3A,0xE3F,0xE5B,0x2000,0x200C,0x200E,0x203B,0x203E,0x206F,0x2100,0x214F,0xFFFD,0xFFFD,0};
+typedef struct FontPlan {ULONGLONG hash;int bytes,face;unsigned covered,missing;uint32_t ranges[175];} FontPlan;
+static FontPlan g_plans[512];static unsigned g_planCount;
+static volatile LONG g_selectedThai,g_selectedFallback;
+static void initFreeType(void){
+    HMODULE ft=GetModuleHandleA("freetype.dll");
+    if(!ft){logline("FreeType coverage API unavailable; retaining Tahoma fallback");return;}
+    g_ftInit=(FTInitFn)(uintptr_t)GetProcAddress(ft,"FT_Init_FreeType");
+    g_ftFace=(FTFaceFn)(uintptr_t)GetProcAddress(ft,"FT_New_Memory_Face");
+    g_ftSelect=(FTSelectFn)(uintptr_t)GetProcAddress(ft,"FT_Select_Charmap");
+    g_ftIndex=(FTIndexFn)(uintptr_t)GetProcAddress(ft,"FT_Get_Char_Index");
+    g_ftDoneFace=(FTDoneFn)(uintptr_t)GetProcAddress(ft,"FT_Done_Face");
+    g_ftDoneLibrary=(FTDoneFn)(uintptr_t)GetProcAddress(ft,"FT_Done_FreeType");
+    logline("Selected-font coverage API ready=%d",g_ftInit&&g_ftFace&&g_ftIndex&&g_ftSelect&&g_ftDoneFace&&g_ftDoneLibrary);
+}
+static FontPlan *fontPlan(void *data,int bytes,int face){
+    ULONGLONG hash=14695981039346656037ULL;FontPlan *p=NULL;void *library=NULL,*font=NULL;unsigned i,at=0;BOOL run=FALSE;uint32_t c;
+    if(!data||bytes<=0||bytes>16*1024*1024||!g_ftInit||!g_ftFace||!g_ftIndex||!g_ftSelect||!g_ftDoneFace||!g_ftDoneLibrary)return NULL;
+    for(i=0;i<(unsigned)bytes;i++){hash^=((const BYTE*)data)[i];hash*=1099511628211ULL;}
+    EnterCriticalSection(&g_lock);
+    for(i=0;i<g_planCount;i++)if(g_plans[i].hash==hash&&g_plans[i].bytes==bytes&&g_plans[i].face==face){p=&g_plans[i];goto done;}
+    if(g_planCount>=512)goto done;
+    if(g_ftInit(&library)||!library)goto done;
+    if(g_ftFace(library,data,bytes,face,&font)||!font){g_ftDoneLibrary(library);goto done;}
+    if(g_ftSelect(font,0x756E6963U)){g_ftDoneFace(font);g_ftDoneLibrary(library);goto done;}
+    p=&g_plans[g_planCount];memset(p,0,sizeof(*p));p->hash=hash;p->bytes=bytes;p->face=face;
+    for(c=0xE01;c<=0xE5B;c++){
+        BOOL thai=(c<=0xE3A||c>=0xE3F);BOOL missing=thai&&g_ftIndex(font,c)==0;
+        if(thai){if(missing)p->missing++;else p->covered++;}
+        if(missing){if(!run){p->ranges[at++]=c;p->ranges[at++]=c;run=TRUE;}else p->ranges[at-1]=c;}
+        else run=FALSE;
+    }
+    p->ranges[at]=0;g_planCount++;g_ftDoneFace(font);g_ftDoneLibrary(library);
+    logline("Selected font Thai coverage: native=%u missing=%u",p->covered,p->missing);
+done:
+    LeaveCriticalSection(&g_lock);return p;
+}
+
 /* Runs when _chat itself adds its text fonts, on _chat's own thread. */
 static void* __attribute__((fastcall)) addFont(void *atlas,void *unused,void *data,int bytes,float pixels,const ChatFontConfig *config,const uint32_t *ranges){
-    void *primary,*fallback;ChatFontConfig thai;(void)unused;
+    void *primary,*fallback;ChatFontConfig thai;FontPlan *plan;const uint32_t *missingRanges=g_thaiRanges;(void)unused;
+    BOOL textFont=(!config||!config->MergeMode)&&(!ranges||ranges==(const uint32_t*)(g_chat+0xD6D24))&&pixels>0.0f&&pixels<=128.0f;
     InterlockedIncrement(&g_fontCalls);
-    primary=g_addMemory(atlas,data,bytes,pixels,config,ranges);
-    if(!primary||!g_fontData||pixels<=0.0f||pixels>128.0f)return primary;
-    if(config&&config->MergeMode)return primary;
-    if(ranges&&ranges!=(const uint32_t*)(g_chat+0xD6D24))return primary;
+    primary=g_addMemory(atlas,data,bytes,pixels,config,textFont?g_selectedRanges:ranges);
+    if(!primary||!g_fontData||!textFont)return primary;
+    plan=fontPlan(data,bytes,config?config->FontNo:0);
+    if(plan){
+        if(plan->covered)InterlockedIncrement(&g_selectedThai);
+        if(!plan->missing)return primary;
+        missingRanges=plan->ranges;
+    }
+    InterlockedIncrement(&g_selectedFallback);
     if(config)memcpy(&thai,config,sizeof(thai));
     else {memset(&thai,0,sizeof(thai));thai.OversampleH=3;thai.OversampleV=1;thai.GlyphMaxAdvanceX=FLT_MAX;thai.RasterizerMultiply=1.0f;thai.EllipsisChar=0xFFFFFFFF;}
     thai.FontData=NULL;thai.FontDataSize=0;
     /* Zero makes _chat copy font data using its own allocator (RVA 6CFA2). */
     thai.FontDataOwnedByAtlas=0;thai.FontNo=0;thai.MergeMode=1;
-    thai.SizePixels=pixels;thai.GlyphRanges=g_thaiRanges;thai.DstFont=primary;
+    thai.SizePixels=pixels;thai.GlyphRanges=missingRanges;thai.DstFont=primary;
     memset(thai.Name,0,sizeof(thai.Name));memcpy(thai.Name,"Thai fallback (Tahoma)",sizeof("Thai fallback (Tahoma)")-1);
-    fallback=g_addMemory(atlas,g_fontData,(int)g_fontBytes,pixels,&thai,g_thaiRanges);
-    if(fallback){LONG count=InterlockedIncrement(&g_merges);if(count<=8)logline("Thai glyphs merged into _chat atlas: size=%.1f total=%ld",(double)pixels,count);}
+    fallback=g_addMemory(atlas,g_fontData,(int)g_fontBytes,pixels,&thai,missingRanges);
+    if(fallback){LONG count=InterlockedIncrement(&g_merges);if(count<=8)logline("Missing Thai glyph fallback registered: size=%.1f total=%ld",(double)pixels,count);}
     else {InterlockedIncrement(&g_mergeFailures);logline("Thai atlas merge failed: size=%.1f",(double)pixels);}
     return primary;
 }
@@ -124,6 +176,7 @@ static BOOL install(void){
     ConvertFn original=NULL;void **slot=(void**)(g_chat+0xCA0F4);MH_STATUS status;DWORD old,unused;
     if(!readmem(slot,&original,sizeof(original))||!original)return FALSE;
     if(!loadFont()){logline("No valid Thai font; installation stopped");return FALSE;}
+    initFreeType();
     status=MH_Initialize();if(status!=MH_OK){logline("MinHook init failed: %s",MH_StatusToString(status));return FALSE;}
     status=MH_CreateHook(g_chat+0x6D4A0,(void*)&addFont,(void**)&g_addMemory);
     if(status!=MH_OK){logline("_chat AddFont hook failed: %s",MH_StatusToString(status));return FALSE;}
@@ -143,16 +196,16 @@ static DWORD WINAPI worker(void *arg){
     if(!GetModuleFileNameW(g_module,path,MAX_PATH-5))return 1;
     {WCHAR *dot=wcsrchr(path,L'.');if(dot)*dot=0;wcscat(path,L".log");}g_log=_wfopen(path,L"wb");
     if(!g_log){GetTempPathW(MAX_PATH-32,path);wcscat(path,L"ThaiChatBridge.log");g_log=_wfopen(path,L"wb");}
-    logline("ThaiChatBridge 1.0 experimental _chat.asi companion; no D3DX or global conversion hooks");
+    logline("ThaiChatBridge 1.1 experimental selected-font _chat.asi companion; no D3DX or global conversion hooks");
     for(i=0;i<240;i++){g_chat=(BYTE*)GetModuleHandleA("_chat.asi");if(g_chat)break;Sleep(250);}
     if(!g_chat){logline("_chat.asi not loaded within 60 seconds");return 2;}
     if(!validChat(g_chat)){logline("Unsupported or modified _chat build; no hooks installed");return 3;}
     if(!install()){logline("Installation failed");return 4;}
     for(i=0;;i++){
-        if(i%40==0)logline("messages=%ld fontCalls=%ld fontMerges=%ld mergeFailures=%ld",g_messages,g_fontCalls,g_merges,g_mergeFailures);
+        if(i%40==0)logline("messages=%ld fontCalls=%ld fontMerges=%ld mergeFailures=%ld selectedThai=%ld selectedFallback=%ld",g_messages,g_fontCalls,g_merges,g_mergeFailures,g_selectedThai,g_selectedFallback);
         Sleep(250);
     }
     return 0;
 }
-__declspec(dllexport) const char *ThaiChatBridgeVersion(void){return "1.0 experimental scoped _chat companion";}
+__declspec(dllexport) const char *ThaiChatBridgeVersion(void){return "1.1 selected-font _chat companion";}
 BOOL WINAPI DllMain(HINSTANCE module,DWORD reason,void *reserved){(void)reserved;if(reason==DLL_PROCESS_ATTACH){HANDLE t;g_module=module;InitializeCriticalSection(&g_lock);DisableThreadLibraryCalls(module);t=CreateThread(NULL,0,worker,NULL,0,NULL);if(t)CloseHandle(t);}return TRUE;}
