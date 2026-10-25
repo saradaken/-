@@ -1,55 +1,47 @@
-# ThaiNative — native SA-MP R3 Thai font bridge
+# ThaiChatBridge — Thai support for the supplied `_chat.asi`
 
-> **หยุดใช้ binary รุ่น 2.1 ชั่วคราว:** ผู้ใช้รายงานว่าเกมเด้งหลังถอดรหัสข้อความไทยสำเร็จ ให้ปิดเกมและนำ `ThaiNative.asi` รุ่นนี้ออกจากการโหลดก่อน ยังไม่มี build ใหม่ที่ยืนยันในเกมจริงแล้ว
->
-> ซอร์สพัฒนาใน [`src/ThaiNative.c`](src/ThaiNative.c) เพิ่ม TLS guard สำหรับการวาดซ้ำข้าม backend และไม่ wrap ฟอนต์ทดแทนของตัวเอง การทดสอบ regression กับ binary ที่คอมไพล์แล้วใน x86 emulator ผ่าน แต่ยังต้องตรวจ `_chat.asi` และ crash log เพื่อระบุสาเหตุเกมเด้ง มี build ทดลอง 2.2-development ให้ลองตามคำขอผู้ใช้ ยังไม่ยืนยันผลในเกมจริง
+[ดาวน์โหลด ThaiChatBridge_v1_0.zip](https://github.com/saradaken/-/raw/refs/heads/main/downloads/ThaiChatBridge_v1_0.zip)
 
-รุ่นทดลองสำหรับแสดงภาษาไทยในตัวเรนเดอร์ฟอนต์เดิมของเกม โดยไม่สร้างหน้าต่างแชทใหม่
+**รุ่นทดลองใหม่ ยังไม่ได้รันในเกม Windows จริง** ใช้ `_chat.asi` เป็นตัววาดแชทหลัก ไม่สร้างหน้าต่างใหม่ ไม่ใช้ตัววาดฟอนต์รวมของ ThaiNative รุ่นก่อน
 
-[ดาวน์โหลด ThaiNative_Renderer_v2_2_dev.zip](https://github.com/saradaken/-/raw/refs/heads/main/downloads/ThaiNative_Renderer_v2_2_dev.zip)
+ThaiNative รุ่นก่อนทำให้เกมเด้งและไม่แนะนำให้โหลดร่วมกับรุ่นนี้
 
-**ยังไม่ได้ทดสอบในเกม Windows จริง** การตรวจโค้ดและทดสอบกับตัวจำลองผ่านแล้ว แต่ต้องยืนยันว่าตัววาดแชทของไคลเอนต์เรียก backend ที่รองรับ
+## ติดตั้งเพื่อทดสอบ
 
-## รุ่นทดลองล่าสุด: 2.2-development
+1. ปิดเกม เอา `ThaiNative.asi` / `ThaiNativeProbe.asi` และสคริปต์ทดลองก่อนหน้าที่ส่งให้ ออกจากการโหลด
+2. เก็บ `_chat.asi` และ `samp.dll` ของคุณไว้ตามเดิม
+3. วาง `ThaiChatBridge.asi` ข้าง `gta_sa.exe` ต้องมี ASI Loader
+4. วาง `ThaiChatBridgeTest.lua` ใน `moonloader` สำหรับทดสอบครั้งแรก
+5. เข้าเกม รอ 5 วินาที แล้วพิมพ์ `/thtest`
+6. ถ้าอักษรหาย/เป็นสี่เหลี่ยม และ log มี `fontMerges=0` ลอง `/fontsize 1` เพื่อให้ `_chat` สร้างฟอนต์ใหม่ แล้วทดสอบอีกครั้ง คำสั่งนี้เปลี่ยนขนาดฟอนต์ของแชท
+7. หากยังผิดปกติ รอ 15 วินาที แล้วส่ง `ThaiChatBridge.log` กับภาพผลทดสอบ หากเด้งให้หยุดใช้แล้วส่ง crash log ด้วย
 
-เพิ่มตัวกันการวาดซ้ำต่อ thread ข้าม backend และไม่ wrap ฟอนต์ทดแทนของตัวเอง ผ่าน regression test ในตัวจำลอง x86 แต่ยังไม่ยืนยันว่าแก้เกมเด้งได้ ใช้ Lua เดิมและเปลี่ยนเฉพาะ `ThaiNative.asi` ได้ Log ต้องเริ่มด้วย `ThaiNative 2.2-development`
+Log อยู่ข้าง `.asi` หรือ `%TEMP%\ThaiChatBridge.log` ถ้าโฟลเดอร์เกมเขียนไม่ได้
 
-## การเปลี่ยนแปลงเดิมใน 2.1
+เมื่อทดสอบผ่าน ใช้ `CEFThai_ChatBridge.lua` แทนสคริปต์ทดสอบเพื่อใช้ `cef_raw.txt` เดิม โหลด Lua เพียงตัวเดียวเพราะมี `/thtest` เหมือนกัน
 
-เพิ่มการถอด marker ที่ `MultiByteToWideChar` ก่อนถึงฟอนต์ และรองรับข้อความ Unicode ไทยที่เข้า `DrawTextW` โดยตรง เพิ่ม `conversionMarkers` / `conversionDecoded` พร้อมระบุโมดูลต้นทางใน log
+## หลักฐานจากไฟล์ที่ตรวจ
 
-ผู้ที่ติดตั้งรุ่นก่อนหน้าแล้ว เปลี่ยนเฉพาะ `ThaiNative.asi` ได้ ใช้ Lua เดิมต่อได้
+- `_chat.asi` เป็น ImGui + FreeType มีชุด glyph เริ่มต้น Latin/Cyrillic/punctuation แต่ไม่มีช่วงภาษาไทย
+- ฟังก์ชันแปลง CP1251 เป็น UTF-16 ที่ log พบ (`_chat.asi+EFDC/F036`) เรียก import `MultiByteToWideChar` ของ `_chat`
+- `samp.dll` ที่แนบล่าสุดมี SHA-256 ตรงกับไฟล์ R3 ที่ตรวจไปก่อนหน้า
 
-## วิธีใช้
+รุ่นนี้เปลี่ยนเฉพาะ import slot ของ `_chat` สำหรับถอด CP874 markers และ hook การเพิ่มฟอนต์ของ `_chat` เพื่อ merge glyph ไทยจาก Windows Tahoma เข้า font atlas เดิม ให้ `_chat` วาดข้อความ สี เงา และประวัติเอง
 
-1. ปิดเกม เอา `ThaiNativeProbe.asi` และสคริปต์ทดลองรุ่นก่อนที่ส่งให้ ออกจากการโหลดก่อน
-2. แตก ZIP วาง `ThaiNative.asi` ข้าง `gta_sa.exe` ต้องมี ASI Loader
-3. วาง **สคริปต์ Lua เพียงตัวเดียว** ใน `moonloader`:
-   - `CEFThai_Native_ASI.lua` ใช้แทนต้นฉบับ พร้อมระบบ CEF และพจนานุกรม `cef_raw.txt` เดิม
-   - หรือ `ThaiNativeChatTest.lua` สำหรับทดสอบเฉพาะข้อความไทย
-4. เข้าเกม รอประมาณ 5 วินาที แล้วพิมพ์ `/thtest`
-5. ถ้ายังเห็น `[[th:...]]` ให้รอ 15 วินาที แล้วส่ง `ThaiNative.log` พร้อมภาพผลทดสอบ
+ไม่มี global Windows API hook หรือ `DrawTextA/W` hook และไม่แก้ไฟล์ `_chat.asi`/`samp.dll` บนดิสก์ ไม่เปลี่ยนการส่งข้อความไปเซิร์ฟเวอร์
 
-ไฟล์ log อยู่ข้าง `.asi` หรือ `%TEMP%\ThaiNative.log` หากโฟลเดอร์เกมเขียนไม่ได้
+## การตรวจสอบและขอบเขต
 
-## สิ่งที่เปลี่ยน
+- คอมไพล์ Windows x86 ด้วย `-Wall -Wextra -Werror`; Lua ผ่าน LuaJIT 2.1
+- รัน conversion callback ที่คอมไพล์แล้วใน x86 emulator ร่วมกับ Lua pack: Thai/tones/colors/mixed Russian, malformed markers และ buffer limits ผ่าน
+- รัน callback ร่วมกับโค้ด `AddFontFromMemoryTTF` และ `AddFont` จาก `_chat.asi` ที่แนบจริงใน emulator: ABI, config 120 bytes, merge ไปฟอนต์เดิม, Thai ranges, ไม่แก้ config ต้นทาง และคัดลอก fallback font ด้วย allocator ของ `_chat` ผ่าน
+- ทดสอบไม่ merge ทับ icon fonts หรือ config ที่ merge อยู่แล้ว
+- ยังไม่ได้ทดสอบ Windows FreeType rasterization, GPU rendering หรือความเสถียรในเกมจริง การจัดตำแหน่งวรรณยุกต์ต้องตรวจจริง และไม่ได้อ้างว่ามี Thai shaping สมบูรณ์
 
-ใช้ marker CP874 ผ่านเส้นทาง ANSI/CP1251 แล้วถอดกลับเป็น UTF-16 ที่ `ID3DXFont::DrawTextA/DrawTextW` ของ `d3dx9_25.dll` และ `d3dx9_43.dll` ใช้ฟอนต์ Tahoma สำหรับข้อความที่ถอดรหัส รองรับสีและเงาดำ พร้อมส่งต่อการวัดความกว้างและการจัดการ device lost/reset
+รองรับเฉพาะ `_chat.asi` ที่ตรวจ: SHA-256 `22b3fb9cc4fe4d36ad2b63daaa90ffbd2e6c1006180581186cd5b97849cd1f6c` ตรวจ PE metadata, function prologue และ default ranges ก่อนติดตั้ง
 
-`core.asi` ที่ตรวจพบการสร้างฟอนต์ผ่าน `d3dx9_43.dll` จึงเพิ่ม backend นี้แทนการอาศัย `CChat::RenderText` เพียงจุดเดียว ยังไม่ถือว่าเป็นหลักฐานว่าตัววาดแชทจริงใช้เส้นทางนี้
+[ซอร์ส companion](src/ThaiChatBridge.c) · [SHA-256 ของแพ็กเกจ](downloads/SHA256SUMS.txt)
 
-สคริปต์ที่ให้มี local wrapper ทำให้เรียก `sampAddChatMessage('สวัสดีครับ', -1)` ภายในไฟล์นั้นได้ ไม่ได้เปลี่ยน API ของสคริปต์อื่นโดยอัตโนมัติ และไม่ได้เปลี่ยนการเข้ารหัสข้อความที่ส่งไปเซิร์ฟเวอร์
+ZIP มีซอร์ส คำสั่ง build และ MinHook 1.3.4 พร้อมใบอนุญาต ไม่มีไฟล์เกมที่ผู้ใช้แนบหรือฟอนต์ Microsoft รวมอยู่
 
-## การตรวจสอบ
-
-- คอมไพล์เป็น PE32 DLL x86 ด้วย MinGW-w64 GCC และ `-Wall -Wextra -Werror`
-- สคริปต์ทั้งสองผ่าน LuaJIT 2.1
-- ทดสอบ API จาก ASI ที่คอมไพล์แล้วในตัวจำลอง x86: Lua → CP874 → CP1251 → ภาษาไทย ทั้ง ANSI และ Unicode
-- ทดสอบ mapping อักษรไทยทั้งหมดใน CP874 สี วรรณยุกต์ รัสเซีย/อังกฤษปนไทย และข้อมูลไม่สมบูรณ์
-- ทดสอบ hook ที่คอมไพล์แล้วกับ COM จำลอง: การวาด Unicode สี เงา การส่งผ่านข้อความปกติ device lost/reset และการปล่อยฟอนต์
-
-Windows API และ COM ในการทดสอบเป็นตัวจำลอง ต้องตรวจในเกมจริงต่อเรื่องการเรนเดอร์ วรรณยุกต์ การตัดบรรทัด และการเปลี่ยนความละเอียด
-
-ZIP มีซอร์ส C, คำสั่ง build และ MinHook 1.3.4 พร้อมใบอนุญาต ไม่มี DLL ของเกมที่ผู้ใช้แนบรวมอยู่ และไม่มีการแก้ `samp.dll`/`core.asi` บนดิสก์
-
-[ตัวตรวจสอบ renderer รุ่นก่อน](downloads/ThaiNative_ASI_Probe.zip) · [SHA-256 ของแพ็กเกจ](downloads/SHA256SUMS.txt)
+ไฟล์ ThaiNative/Probe รุ่นก่อนที่เก็บไว้ใน `downloads` เป็นงานทดลองเก่า ไม่ใช่ตัวเลือกติดตั้งปัจจุบัน
