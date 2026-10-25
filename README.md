@@ -2,15 +2,19 @@
 
 > **หยุดใช้ binary รุ่น 2.1 ชั่วคราว:** ผู้ใช้รายงานว่าเกมเด้งหลังถอดรหัสข้อความไทยสำเร็จ ให้ปิดเกมและนำ `ThaiNative.asi` รุ่นนี้ออกจากการโหลดก่อน ยังไม่มี build ใหม่ที่ยืนยันในเกมจริงแล้ว
 >
-> ซอร์สพัฒนาใน [`src/ThaiNative.c`](src/ThaiNative.c) เพิ่ม TLS guard สำหรับการวาดซ้ำข้าม backend และไม่ wrap ฟอนต์ทดแทนของตัวเอง การทดสอบ regression กับ binary ที่คอมไพล์แล้วใน x86 emulator ผ่าน แต่ยังต้องตรวจ `_chat.asi` และ crash log เพื่อระบุสาเหตุเกมเด้ง ไม่มีการเผยแพร่ binary รุ่นแก้นี้เพื่อให้ทดลองซ้ำในขั้นนี้
+> ซอร์สพัฒนาใน [`src/ThaiNative.c`](src/ThaiNative.c) เพิ่ม TLS guard สำหรับการวาดซ้ำข้าม backend และไม่ wrap ฟอนต์ทดแทนของตัวเอง การทดสอบ regression กับ binary ที่คอมไพล์แล้วใน x86 emulator ผ่าน แต่ยังต้องตรวจ `_chat.asi` และ crash log เพื่อระบุสาเหตุเกมเด้ง มี build ทดลอง 2.2-development ให้ลองตามคำขอผู้ใช้ ยังไม่ยืนยันผลในเกมจริง
 
 รุ่นทดลองสำหรับแสดงภาษาไทยในตัวเรนเดอร์ฟอนต์เดิมของเกม โดยไม่สร้างหน้าต่างแชทใหม่
 
-[ดาวน์โหลด ThaiNative_Renderer_v2_1.zip](https://github.com/saradaken/-/raw/refs/heads/main/downloads/ThaiNative_Renderer_v2_1.zip)
+[ดาวน์โหลด ThaiNative_Renderer_v2_2_dev.zip](https://github.com/saradaken/-/raw/refs/heads/main/downloads/ThaiNative_Renderer_v2_2_dev.zip)
 
 **ยังไม่ได้ทดสอบในเกม Windows จริง** การตรวจโค้ดและทดสอบกับตัวจำลองผ่านแล้ว แต่ต้องยืนยันว่าตัววาดแชทของไคลเอนต์เรียก backend ที่รองรับ
 
-## รุ่น 2.1
+## รุ่นทดลองล่าสุด: 2.2-development
+
+เพิ่มตัวกันการวาดซ้ำต่อ thread ข้าม backend และไม่ wrap ฟอนต์ทดแทนของตัวเอง ผ่าน regression test ในตัวจำลอง x86 แต่ยังไม่ยืนยันว่าแก้เกมเด้งได้ ใช้ Lua เดิมและเปลี่ยนเฉพาะ `ThaiNative.asi` ได้ Log ต้องเริ่มด้วย `ThaiNative 2.2-development`
+
+## การเปลี่ยนแปลงเดิมใน 2.1
 
 เพิ่มการถอด marker ที่ `MultiByteToWideChar` ก่อนถึงฟอนต์ และรองรับข้อความ Unicode ไทยที่เข้า `DrawTextW` โดยตรง เพิ่ม `conversionMarkers` / `conversionDecoded` พร้อมระบุโมดูลต้นทางใน log
 
